@@ -1,0 +1,46 @@
+# Install required packages
+if (!require(tidycensus)) install.packages("tidycensus")
+if (!require(dplyr)) install.packages("dplyr")
+
+# Load the packages
+library(tidycensus)
+library(dplyr)
+
+# Set your Census API key
+census_api_key("your_api_key", install = TRUE, overwrite = TRUE)
+
+# Define the years you're interested in (2010 to 2022)
+years <- 2010:2022
+
+# Function to fetch median household income data for a specific year
+get_income_data <- function(year) {
+  tryCatch({
+    data <- get_acs(geography = "metropolitan statistical area/micropolitan statistical area", 
+                    year = year, 
+                    survey = "acs1", 
+                    table = "B19013", 
+                    output = "wide") %>%
+      mutate(Year = year)
+    return(data)
+  }, error = function(e) {
+    message("Error with year ", year, ": ", e$message)
+    return(NULL)
+  })
+}
+
+# Initialize an empty list to store the data
+all_data <- list()
+
+# Loop over each year, fetching data
+for (year in years) {
+  data <- get_income_data(year)
+  if (!is.null(data)) {
+    all_data[[as.character(year)]] <- data
+  }
+}
+
+# Combine the data from different years
+combined_data <- bind_rows(all_data)
+
+# Save the combined data to a CSV file on your desktop
+write.csv(combined_data, "~/Desktop/Median_Household_Income_MSA_2010_2022.csv", row.names = FALSE)
